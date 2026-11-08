@@ -1,17 +1,13 @@
-name: Build Windows x64
+name: Release
 
 on:
   push:
-    branches: [ "main", "master" ]
     tags:
       - 'v*'
-  pull_request:
-    branches: [ "main", "master" ]
-  workflow_dispatch:
 
 jobs:
   build:
-    name: Build for Windows x64
+    name: Build Windows x64
     runs-on: windows-latest
 
     steps:
@@ -30,4 +26,28 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Serein-windows-x64
-          path: target/release/*.exe
+          # Исправлен путь с учетом целевой архитектуры (--target)
+          path: target/x86_64-pc-windows-msvc/release/*.exe
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: Serein-windows-x64
+          path: ./release-assets
+
+      - name: Create Release and Upload Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./release-assets/*.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
